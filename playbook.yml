@@ -1,0 +1,36 @@
+- name: Add Adoptium GPG key
+  ansible.builtin.get_url:
+    url: https://packages.adoptium.net/artifactory/api/gpg/key/public
+    dest: /etc/apt/keyrings/adoptium.asc
+  when: ansible_facts.os_family == "Debian"
+
+- name: Add Adoptium repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(lsb_release -cs) main"
+    state: present
+  when: ansible_facts.os_family == "Debian"
+
+- name: Install Temurin JDK {{ java_version }}
+  ansible.builtin.apt:
+    name: "temurin-{{ java_version }}-jdk"
+    state: present
+    update_cache: yes
+  when: ansible_facts.os_family == "Debian"
+
+# --- GRADLE ---
+- name: Download Gradle {{ gradle_version }}
+  ansible.builtin.get_url:
+    url: "https://services.gradle.org/distributions/gradle-{{ gradle_version }}-bin.zip"
+    dest: "/tmp/gradle-{{ gradle_version }}.zip"
+
+- name: Unpack Gradle
+  ansible.builtin.unarchive:
+    src: "/tmp/gradle-{{ gradle_version }}.zip"
+    dest: /opt
+    remote_src: true
+
+- name: Symlink Gradle to /usr/local/bin
+  ansible.builtin.file:
+    src: "/opt/gradle-{{ gradle_version }}/bin/gradle"
+    dest: /usr/local/bin/gradle
+    state: link
